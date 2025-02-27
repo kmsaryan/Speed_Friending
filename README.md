@@ -11,8 +11,6 @@
 ├── .gitignore
 └── ...
 
-Your idea is solid—it’s essentially a **Speed Friending Game** where participants are randomly matched, engage in a brief conversation, and rate each other anonymously. Below is a **refined and structured** version of your concept:  
-
 ---
 
 ## **Speed Friending Game – Concept & Flow**  
