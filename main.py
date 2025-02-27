@@ -43,24 +43,32 @@ def attempt_match():
     available_players = Player.query.filter_by(matched=False, stationary=False).all()
     stationary_opponents = Player.query.filter_by(matched=False, stationary=True).all()
 
+    print(f"Available players: {[p.name for p in available_players]}")
+    print(f"Stationary players: {[p.name for p in stationary_opponents]}")
+
     if not available_players and not stationary_opponents:
+        print("No available players for matching.")
         return  
 
-    while len(available_players) > 1:  # Ensure pairing works for multiple players
+    # Ensure matching happens correctly
+    while len(available_players) >= 2:  
         player1 = available_players.pop(0)
-        opponent = available_players.pop(0)
+        player2 = available_players.pop(0)
 
         challenge = random.choice(challenges)
-        match = Match(player1=player1.name, player2=opponent.name, challenge=challenge)
+        match = Match(player1=player1.name, player2=player2.name, challenge=challenge)
         db.session.add(match)
 
         player1.matched = True
-        opponent.matched = True
+        player2.matched = True
         db.session.commit()
+
+        print(f"Created match: {player1.name} vs {player2.name}")
 
         threading.Thread(target=match_timer, args=(match.id,)).start()
 
-    if stationary_opponents and available_players:
+    # Pair remaining available players with stationary opponents
+    while stationary_opponents and available_players:
         player1 = available_players.pop(0)
         opponent = stationary_opponents.pop(0)
 
@@ -72,7 +80,10 @@ def attempt_match():
         opponent.matched = True
         db.session.commit()
 
+        print(f"Created match: {player1.name} vs {opponent.name}")
+
         threading.Thread(target=match_timer, args=(match.id,)).start()
+
 
 
 @app.route('/match_status/<player_name>', methods=['GET'])
