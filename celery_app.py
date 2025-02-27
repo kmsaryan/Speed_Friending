@@ -1,3 +1,5 @@
+#celery_app.py
+#This file contains the Celery configuration
 from celery import Celery
 
 def make_celery(app):

@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, current_app
 from flask_cors import CORS
 import random
 import time
 from database.database import db, setup_database, Player, Match, Rating  # Import database setup
-from celery import Celery
+from celery_app import make_celery
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -13,25 +13,6 @@ setup_database(app)  # Set up database before running the app
 CORS(app)
 
 # Initialize Celery
-from celery import Celery
-from celery import current_app
-
-def make_celery(app):
-    celery = Celery(
-        app.import_name,
-        backend=app.config['CELERY_RESULT_BACKEND'],
-        broker=app.config['CELERY_BROKER_URL']
-    )
-    celery.conf.update(app.config)
-
-    class ContextTask(celery.Task):
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return self.run(*args, **kwargs)
-
-    celery.Task = ContextTask
-    return celery
-
 celery = make_celery(app)
 
 # ----------------- CHALLENGES -----------------

@@ -18,7 +18,11 @@ let timer;
 document.addEventListener('DOMContentLoaded', function () {
     const playerName = sessionStorage.getItem("playerName");
     if (playerName) {
-        checkMatch(playerName);
+        if (window.location.pathname.includes("player")) {
+            checkMatch(playerName);
+        } else if (window.location.pathname.includes("opponent")) {
+            checkMatchAsOpponent(playerName);
+        }
     }
 });
 
@@ -71,6 +75,31 @@ async function checkMatch(playerName) {
     }
 }
 
+async function checkMatchAsOpponent(playerName) {
+    if (!playerName) return alert("No player name found. Please register again.");
+
+    try {
+        const response = await fetch(`${backendURL}/match_status/${playerName}`);
+        const data = await response.json();
+
+        if (data.error) {
+            console.error(data.error);
+            document.getElementById('match-status').innerText = 'No match found';
+            setTimeout(() => checkMatchAsOpponent(playerName), 3000); // Retry after 3 seconds
+        } else {
+            currentMatchId = data.match_id;
+            document.getElementById('opponent-name').innerText = playerName;
+            document.getElementById('player-name').innerText = data.opponent;
+            document.getElementById('challenge').innerText = data.challenge;
+            startTimer();
+        }
+    } catch (error) {
+        console.error("Error checking match status:", error);
+        alert("Failed to retrieve match status.");
+        setTimeout(() => checkMatchAsOpponent(playerName), 3000); // Retry after 3 seconds
+    }
+}
+
 function startTimer() {
     let timeLeft = 60;
     const timerElement = document.getElementById("timer");
@@ -118,6 +147,11 @@ window.onload = () => {
         const playerName = sessionStorage.getItem("playerName");
         if (playerName) {
             checkMatch(playerName);
+        }
+    } else if (window.location.pathname.includes("opponent")) {
+        const playerName = sessionStorage.getItem("playerName");
+        if (playerName) {
+            checkMatchAsOpponent(playerName);
         }
     }
 };
