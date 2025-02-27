@@ -7,10 +7,17 @@ import time
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
-players_queue = []  # Players waiting to be matched
-stationary_opponents = []  # Players who chose to remain stationary
-matches = {}
-ratings = {}
+players_queue = []  
+stationary_opponents = []  
+matches = {}  
+ratings = {}  
+challenges = [
+    "Describe a unique holiday in your country!",
+    "What's a traditional dish from your culture?",
+    "Teach your opponent a greeting in your language!",
+    "Share an interesting myth or legend from your culture!",
+    "Explain a local custom that people might not know about!"
+]
 
 @app.route('/')
 def home():
@@ -24,7 +31,7 @@ def register():
         "age": data.get("age", "Unknown"),
         "interests": data.get("interests", []),
         "stationary": data.get("stationary", False),
-        "matched": False  # Track if matched
+        "matched": False
     }
     
     if player["stationary"]:
@@ -32,16 +39,14 @@ def register():
     else:
         players_queue.append(player)
     
-    # Try to match players right away
     attempt_match()
 
-    return jsonify({"message": "Player registered! Redirecting to player page."})
-
+    return jsonify({"message": "Player registered!", "redirect": "/player"})
 
 def attempt_match():
     while len(players_queue) >= 1 or len(stationary_opponents) >= 1:
         if len(players_queue) < 1 and len(stationary_opponents) < 1:
-            return  # No players to match
+            return  
 
         player = players_queue.pop(0) if players_queue else None
 
@@ -50,10 +55,16 @@ def attempt_match():
         elif players_queue:
             opponent = players_queue.pop(0)
         else:
-            return  # Not enough players
+            return  
 
         match_id = f"{player['name']}_vs_{opponent['name']}"
-        matches[match_id] = {"player": player, "opponent": opponent, "time": 60}  # 60 sec match
+        challenge = random.choice(challenges)
+        matches[match_id] = {
+            "player": player,
+            "opponent": opponent,
+            "challenge": challenge,
+            "time": 60
+        }
         
         player["matched"] = True
         opponent["matched"] = True
@@ -62,19 +73,22 @@ def attempt_match():
 
 @app.route('/match_status/<player_name>', methods=['GET'])
 def match_status(player_name):
-    """Check if a player has been matched and return match info."""
     for match_id, match_data in matches.items():
         if match_data["player"]["name"] == player_name or match_data["opponent"]["name"] == player_name:
-            return jsonify({"matched": True, "match_id": match_id, "opponent": match_data["opponent"] if match_data["player"]["name"] == player_name else match_data["player"]})
+            return jsonify({
+                "matched": True,
+                "match_id": match_id,
+                "opponent": match_data["opponent"] if match_data["player"]["name"] == player_name else match_data["player"],
+                "challenge": match_data["challenge"]
+            })
 
     return jsonify({"matched": False})
 
-
 def match_timer(match_id):
-    time.sleep(60)  # 1-minute timer
+    time.sleep(60)  
     
     if match_id in matches:
-        del matches[match_id]  # Remove expired match
+        del matches[match_id]  
 
 @app.route('/rate', methods=['POST'])
 def rate():
@@ -85,7 +99,7 @@ def rate():
     if match_id not in matches:
         return jsonify({"message": "Invalid match ID"}), 400
     
-    ratings[match_id] = rating  # Store anonymously
+    ratings[match_id] = rating  
     return jsonify({"message": "Rating submitted!"})
 
 @app.route('/history', methods=['GET'])

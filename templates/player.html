@@ -1,22 +1,24 @@
-<!-- player.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Speed Friending - Player</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <h1>Welcome, <span id="player-name"></span></h1>
     <h2>You're matched with: <span id="opponent-name"></span></h2>
+    <h3>Challenge: <span id="challenge-text"></span></h3>
     <div id="interaction-area">
         <p>Time remaining: <span id="timer">60</span> seconds</p>
     </div>
     <button onclick="endMatch()">End Interaction</button>
-    
+
     <script>
-        const playerName = sessionStorage.getItem("playerName"); // Store on registration
+        const playerName = sessionStorage.getItem("playerName");
         const backendURL = "https://speed-friending.onrender.com";
 
         async function checkMatch() {
@@ -24,17 +26,18 @@
             const data = await response.json();
 
             if (data.matched) {
-                document.getElementById("match-info").innerText = `Matched with: ${data.opponent.name}`;
+                document.getElementById("opponent-name").innerText = data.opponent.name;
+                document.getElementById("challenge-text").innerText = data.challenge;
                 sessionStorage.setItem("matchId", data.match_id);
             } else {
-                setTimeout(checkMatch, 5000); // Retry every 5 seconds if not matched
+                setTimeout(checkMatch, 5000);
             }
         }
 
         window.onload = () => {
-            checkMatch(); // Start checking for a match on page load
+            checkMatch();
         };
     </script>
-
 </body>
+
 </html>
