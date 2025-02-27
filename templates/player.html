@@ -1,0 +1,20 @@
+<!-- player.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Friending - Player</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Welcome, <span id="player-name"></span></h1>
+    <h2>You're matched with: <span id="opponent-name"></span></h2>
+    <div id="interaction-area">
+        <p>Time remaining: <span id="timer">60</span> seconds</p>
+    </div>
+    <button onclick="endMatch()">End Interaction</button>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

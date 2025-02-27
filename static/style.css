@@ -1,46 +1,15 @@
 /* style.css */
-
 body {
     font-family: Arial, sans-serif;
-    background-color: #f0f0f0;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-
-h1 {
-    color: #333;
-}
-
-input[type="text"] {
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    width: 100%;
-    max-width: 300px;
+    text-align: center;
+    background-color: #f4f4f4;
 }
 
 button {
-    padding: 10px 20px;
-    margin: 10px 5px;
-    border: none;
-    border-radius: 4px;
-    background-color: #007BFF;
+    padding: 10px;
+    margin: 10px;
+    background-color: #4CAF50;
     color: white;
+    border: none;
     cursor: pointer;
-    font-size: 16px;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-#match-result {
-    margin-top: 20px;
-    font-size: 18px;
-    color: #007BFF;
 }
