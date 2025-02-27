@@ -15,7 +15,7 @@ async function registerPlayer() {
 
     const data = await response.json();
     alert(data.message);
-    window.location.href = "/player";
+    window.location.href = "player";
 }
 
 async function findMatch() {

@@ -76,5 +76,13 @@ def rate():
 def history():
     return jsonify({"history": ratings})
 
+@app.route('/player')
+def player_page():
+    return render_template('player.html')
+
+@app.route('/opponent')
+def opponent_page():
+    return render_template('opponent.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
