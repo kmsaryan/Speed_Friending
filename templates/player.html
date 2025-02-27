@@ -15,6 +15,26 @@
     </div>
     <button onclick="endMatch()">End Interaction</button>
     
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        const playerName = sessionStorage.getItem("playerName"); // Store on registration
+        const backendURL = "https://speed-friending.onrender.com";
+
+        async function checkMatch() {
+            const response = await fetch(`${backendURL}/match_status/${playerName}`);
+            const data = await response.json();
+
+            if (data.matched) {
+                document.getElementById("match-info").innerText = `Matched with: ${data.opponent.name}`;
+                sessionStorage.setItem("matchId", data.match_id);
+            } else {
+                setTimeout(checkMatch, 5000); // Retry every 5 seconds if not matched
+            }
+        }
+
+        window.onload = () => {
+            checkMatch(); // Start checking for a match on page load
+        };
+    </script>
+
 </body>
 </html>

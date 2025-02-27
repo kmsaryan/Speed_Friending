@@ -14,9 +14,10 @@ async function registerPlayer() {
     });
 
     const data = await response.json();
-    alert(data.message);
-    window.location.href = "player";
+    sessionStorage.setItem("playerName", name); // Store for later use
+    window.location.href = "player"; // Redirect to player page
 }
+
 
 async function findMatch() {
     const response = await fetch(`${backendURL}/match`);

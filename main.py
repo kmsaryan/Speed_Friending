@@ -23,7 +23,8 @@ def register():
         "name": data["name"],
         "age": data.get("age", "Unknown"),
         "interests": data.get("interests", []),
-        "stationary": data.get("stationary", False)
+        "stationary": data.get("stationary", False),
+        "matched": False  # Track if matched
     }
     
     if player["stationary"]:
@@ -31,28 +32,43 @@ def register():
     else:
         players_queue.append(player)
     
-    return jsonify({"message": "Player registered! Waiting for a match."})
+    # Try to match players right away
+    attempt_match()
 
-@app.route('/match', methods=['GET'])
-def match_players():
-    if len(players_queue) < 1 and len(stationary_opponents) < 1:
-        return jsonify({"message": "No available players to match."})
-    
-    player = players_queue.pop(0) if players_queue else None
-    
-    if stationary_opponents:
-        opponent = stationary_opponents.pop(0)
-    elif players_queue:
-        opponent = players_queue.pop(0)
-    else:
-        return jsonify({"message": "Waiting for more players."})
-    
-    match_id = f"{player['name']}_vs_{opponent['name']}"
-    matches[match_id] = {"player": player, "opponent": opponent, "time": 60}  # 60 seconds match
-    
-    threading.Thread(target=match_timer, args=(match_id,)).start()
-    
-    return jsonify({"match_id": match_id, "player": player, "opponent": opponent})
+    return jsonify({"message": "Player registered! Redirecting to player page."})
+
+
+def attempt_match():
+    while len(players_queue) >= 1 or len(stationary_opponents) >= 1:
+        if len(players_queue) < 1 and len(stationary_opponents) < 1:
+            return  # No players to match
+
+        player = players_queue.pop(0) if players_queue else None
+
+        if stationary_opponents:
+            opponent = stationary_opponents.pop(0)
+        elif players_queue:
+            opponent = players_queue.pop(0)
+        else:
+            return  # Not enough players
+
+        match_id = f"{player['name']}_vs_{opponent['name']}"
+        matches[match_id] = {"player": player, "opponent": opponent, "time": 60}  # 60 sec match
+        
+        player["matched"] = True
+        opponent["matched"] = True
+        
+        threading.Thread(target=match_timer, args=(match_id,)).start()
+
+@app.route('/match_status/<player_name>', methods=['GET'])
+def match_status(player_name):
+    """Check if a player has been matched and return match info."""
+    for match_id, match_data in matches.items():
+        if match_data["player"]["name"] == player_name or match_data["opponent"]["name"] == player_name:
+            return jsonify({"matched": True, "match_id": match_id, "opponent": match_data["opponent"] if match_data["player"]["name"] == player_name else match_data["player"]})
+
+    return jsonify({"matched": False})
+
 
 def match_timer(match_id):
     time.sleep(60)  # 1-minute timer
