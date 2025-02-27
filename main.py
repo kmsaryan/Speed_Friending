@@ -86,33 +86,27 @@ def attempt_match():
 
 
 
-@app.route('/match_status/<player_name>', methods=['GET'])
+@app.route('/match_status/<player_name>')
 def match_status(player_name):
-    matches = Match.query.all()
-    print("All Matches in DB:", matches)
-
     match = Match.query.filter(
         (Match.player1 == player_name) | (Match.player2 == player_name)
-    ).order_by(Match.id.desc()).first()
+    ).first()
 
     if match:
-        opponent = match.player2 if match.player1 == player_name else match.player1
-        return jsonify({
-            "matched": True,
-            "match_id": match.id,
-            "opponent": opponent,
-            "challenge": match.challenge
-        })
-
-    return jsonify({"matched": False})
+        return jsonify({"match_id": match.id, "player1": match.player1, "player2": match.player2, "challenge": match.challenge})
+    else:
+        return jsonify({"error": "No match found"}), 404
 
 
 def match_timer(match_id):
-    time.sleep(60)  # Wait for 1 minutes
-    match = Match.query.get(match_id)
-    if match:
-        match.completed = True
-        db.session.commit()
+    with app.app_context():
+        time.sleep(60)  # Wait for match duration
+        match = Match.query.get(match_id)
+        if match:
+            db.session.delete(match)
+            db.session.commit()
+        print(f"Match {match_id} expired.")
+
 
 @app.route('/rate', methods=['POST'])
 def rate():
