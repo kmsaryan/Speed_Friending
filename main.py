@@ -46,28 +46,43 @@ def attempt_match():
     if not available_players and not stationary_opponents:
         return  
 
-    if stationary_opponents:
-        player1 = available_players.pop(0) if available_players else None
-        opponent = stationary_opponents.pop(0)
-    elif len(available_players) >= 2:
+    while len(available_players) > 1:  # Ensure pairing works for multiple players
         player1 = available_players.pop(0)
         opponent = available_players.pop(0)
-    else:
-        return  
 
-    if player1 and opponent:
         challenge = random.choice(challenges)
         match = Match(player1=player1.name, player2=opponent.name, challenge=challenge)
         db.session.add(match)
+
         player1.matched = True
         opponent.matched = True
         db.session.commit()
 
         threading.Thread(target=match_timer, args=(match.id,)).start()
 
+    if stationary_opponents and available_players:
+        player1 = available_players.pop(0)
+        opponent = stationary_opponents.pop(0)
+
+        challenge = random.choice(challenges)
+        match = Match(player1=player1.name, player2=opponent.name, challenge=challenge)
+        db.session.add(match)
+
+        player1.matched = True
+        opponent.matched = True
+        db.session.commit()
+
+        threading.Thread(target=match_timer, args=(match.id,)).start()
+
+
 @app.route('/match_status/<player_name>', methods=['GET'])
 def match_status(player_name):
-    match = Match.query.filter((Match.player1 == player_name) | (Match.player2 == player_name)).first()
+    matches = Match.query.all()
+    print("All Matches in DB:", matches)
+
+    match = Match.query.filter(
+        (Match.player1 == player_name) | (Match.player2 == player_name)
+    ).order_by(Match.id.desc()).first()
 
     if match:
         opponent = match.player2 if match.player1 == player_name else match.player1
@@ -79,6 +94,7 @@ def match_status(player_name):
         })
 
     return jsonify({"matched": False})
+
 
 def match_timer(match_id):
     time.sleep(60)  # Wait for 1 minutes
