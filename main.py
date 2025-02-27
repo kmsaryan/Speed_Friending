@@ -1,42 +1,15 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 import random
 import threading
 import time
+from database.database import db, setup_database, Player, Match, Rating  # Import database setup
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database/matchmaking.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+setup_database(app)  # Set up database before running the app
+
 CORS(app)
-
-# ----------------- DATABASE MODELS -----------------
-
-class Player(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
-    age = db.Column(db.String(10))
-    interests = db.Column(db.String(200))
-    stationary = db.Column(db.Boolean, default=False)
-    matched = db.Column(db.Boolean, default=False)
-
-class Match(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    player1 = db.Column(db.String(50), nullable=False)
-    player2 = db.Column(db.String(50), nullable=False)
-    challenge = db.Column(db.String(300), nullable=False)
-    time_limit = db.Column(db.Integer, default=60)
-
-class Rating(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    match_id = db.Column(db.Integer, db.ForeignKey('match.id'), nullable=False)
-    rating = db.Column(db.Integer, nullable=False)
-
-# Create tables if they don't exist
-with app.app_context():
-    db.create_all()
-
+# ----------------- CHALLENGES -----------------
 challenges = [
     "Describe a unique holiday in your country!",
     "What's a traditional dish from your culture?",
@@ -46,7 +19,6 @@ challenges = [
 ]
 
 # ----------------- ROUTES -----------------
-
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -109,10 +81,10 @@ def match_status(player_name):
     return jsonify({"matched": False})
 
 def match_timer(match_id):
-    time.sleep(60)
+    time.sleep(60)  # Wait for 1 minutes
     match = Match.query.get(match_id)
     if match:
-        db.session.delete(match)
+        match.completed = True
         db.session.commit()
 
 @app.route('/rate', methods=['POST'])
