@@ -1,6 +1,26 @@
+//script.js
+// send a POST request to the backend to register a player
+// send a GET request to the backend to check the match status
+// start a timer when a match is found
+// send a POST request to the backend to submit the rating
+// redirect to the rating page after the match ends
+// auto-check for match on player page load
+// auto-retry checking for match every 3 seconds if no match is found
+// display a message if no match is found
+// display a message when the match ends
+// display a message when the rating is submitted
+
+
 const backendURL = "https://speed-friending.onrender.com"; // Replace with your backend URL
 let currentMatchId = null;
 let timer;
+
+document.addEventListener('DOMContentLoaded', function () {
+    const playerName = sessionStorage.getItem("playerName");
+    if (playerName) {
+        checkMatch(playerName);
+    }
+});
 
 async function registerPlayer() {
     const name = document.getElementById("name").value;
@@ -26,26 +46,28 @@ async function registerPlayer() {
     }
 }
 
-async function checkMatch() {
-    const playerName = sessionStorage.getItem("playerName");
+async function checkMatch(playerName) {
     if (!playerName) return alert("No player name found. Please register again.");
 
     try {
         const response = await fetch(`${backendURL}/match_status/${playerName}`);
         const data = await response.json();
 
-        if (data.matched) {
-            currentMatchId = data.match_id;
-            document.getElementById("player-name").innerText = playerName;
-            document.getElementById("opponent-name").innerText = data.opponent.name;
-            document.getElementById("challenge-text").innerText = data.challenge; // Display cultural challenge
-            startTimer();
+        if (data.error) {
+            console.error(data.error);
+            document.getElementById('match-status').innerText = 'No match found';
+            setTimeout(() => checkMatch(playerName), 3000); // Retry after 3 seconds
         } else {
-            setTimeout(checkMatch, 3000); // Retry after 3 seconds
+            currentMatchId = data.match_id;
+            document.getElementById('player-name').innerText = playerName;
+            document.getElementById('opponent-name').innerText = data.opponent;
+            document.getElementById('challenge').innerText = data.challenge;
+            startTimer();
         }
     } catch (error) {
         console.error("Error checking match status:", error);
         alert("Failed to retrieve match status.");
+        setTimeout(() => checkMatch(playerName), 3000); // Retry after 3 seconds
     }
 }
 
@@ -93,6 +115,9 @@ async function submitRating() {
 // Auto-check for match on player page load
 window.onload = () => {
     if (window.location.pathname.includes("player")) {
-        checkMatch();
+        const playerName = sessionStorage.getItem("playerName");
+        if (playerName) {
+            checkMatch(playerName);
+        }
     }
 };

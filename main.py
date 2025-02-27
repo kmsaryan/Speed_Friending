@@ -1,14 +1,39 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import random
-import threading
 import time
 from database.database import db, setup_database, Player, Match, Rating  # Import database setup
+from celery import Celery
 
+# Initialize Flask app
 app = Flask(__name__, static_folder='static', template_folder='templates')
+app.config.from_object('config.Config')
 setup_database(app)  # Set up database before running the app
 
 CORS(app)
+
+# Initialize Celery
+from celery import Celery
+from celery import current_app
+
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
+
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
+
+celery = make_celery(app)
+
 # ----------------- CHALLENGES -----------------
 challenges = [
     "Describe a unique holiday in your country!",
@@ -25,19 +50,23 @@ def home():
 
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    new_player = Player(
-        name=data['name'],
-        age=data.get('age', 'Unknown'),
-        interests=','.join(data.get('interests', [])),
-        stationary=data.get('stationary', False),
-        matched=False
-    )
-    db.session.add(new_player)
-    db.session.commit()
+    try:
+        data = request.get_json()
+        new_player = Player(
+            name=data['name'],
+            age=data.get('age', 'Unknown'),
+            interests=','.join(data.get('interests', [])),
+            stationary=data.get('stationary', False),
+            matched=False
+        )
+        db.session.add(new_player)
+        db.session.commit()
 
-    attempt_match()
-    return jsonify({"message": "Player registered!", "redirect": "/player"})
+        attempt_match()
+        return jsonify({"message": "Player registered!", "redirect": "/player"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
 
 def attempt_match():
     available_players = Player.query.filter_by(matched=False, stationary=False).all()
@@ -65,7 +94,7 @@ def attempt_match():
 
         print(f"Created match: {player1.name} vs {player2.name}")
 
-        threading.Thread(target=match_timer, args=(match.id,)).start()
+        match_timer.delay(match.id)
 
     # Pair remaining available players with stationary opponents
     while stationary_opponents and available_players:
@@ -82,9 +111,7 @@ def attempt_match():
 
         print(f"Created match: {player1.name} vs {opponent.name}")
 
-        threading.Thread(target=match_timer, args=(match.id,)).start()
-
-
+        match_timer.delay(match.id)
 
 @app.route('/match_status/<player_name>')
 def match_status(player_name):
@@ -93,20 +120,20 @@ def match_status(player_name):
     ).first()
 
     if match:
-        return jsonify({"match_id": match.id, "player1": match.player1, "player2": match.player2, "challenge": match.challenge})
+        if match.player1 == player_name:
+            opponent_name = match.player2
+        else:
+            opponent_name = match.player1
+
+        return jsonify({
+            "match_id": match.id,
+            "player1": match.player1,
+            "player2": match.player2,
+            "opponent": opponent_name,
+            "challenge": match.challenge
+        })
     else:
         return jsonify({"error": "No match found"}), 404
-
-
-def match_timer(match_id):
-    with app.app_context():
-        time.sleep(60)  # Wait for match duration
-        match = Match.query.get(match_id)
-        if match:
-            db.session.delete(match)
-            db.session.commit()
-        print(f"Match {match_id} expired.")
-
 
 @app.route('/rate', methods=['POST'])
 def rate():
@@ -137,6 +164,15 @@ def player_page():
 @app.route('/opponent')
 def opponent_page():
     return render_template('opponent.html')
+
+@celery.task
+def match_timer(match_id):
+    time.sleep(60)  # Wait for match duration
+    match = Match.query.get(match_id)
+    if match:
+        db.session.delete(match)
+        db.session.commit()
+    print(f"Match {match_id} expired.")
 
 if __name__ == '__main__':
     app.run(debug=True)

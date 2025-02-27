@@ -1,21 +1,28 @@
 # Speed_Friending
 
-├── static/      
-│   ├── style.css
-│   ├── script.js
-├── templates/     
-│   ├── index.html
-├── main.py
-├── requirements.txt
-├── Procfile
-├── .gitignore
-└── ...
+/project-root
+│── /database
+│   ├── database.py  <-- Database logic
+│   ├── matchmaking.db  <-- SQLite file (auto-generated)
+│── /static
+    |── script.js
+    |── style.css
+│── /templates
+   |── index.html
+   |── opponet.html
+   |── player.html
+│── main.py  <-- Main Flask app
+│── requirements.txt
+│── render.yaml
+|── Procfile
+|── README.md
 
 ---
 
 ## **Speed Friending Game – Concept & Flow**  
 
 ### **Overview:**  
+
 A social interaction game where participants meet new people through **randomized one-on-one conversations**. After each round, players **anonymously rate** their conversation partners, and the process continues until everyone has interacted with multiple participants.  
 
 ### **Game Flow:**  
@@ -50,14 +57,16 @@ A social interaction game where participants meet new people through **randomize
      - “80% of participants would talk to you again!”  
 
 ### **Game Rules & Setup:**  
+
 - Players seated at **fixed tables (opponents stay at their tables)**.  
 - The **approaching players rotate** to the next table after each round.  
 - **Time limit per round** ensures smooth transitions.  
 
 ### **Why It Works:**  
+
 ✅ **Encourages socializing in a fun & structured way**  
 ✅ **Removes awkwardness with guided interactions**  
 ✅ **Fosters meaningful connections through shared interests**  
 ✅ **Gives participants feedback on their social skills (anonymously)**  
 
----  
+---
