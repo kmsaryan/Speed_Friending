@@ -9,7 +9,7 @@ matches = {}
 
 @app.route('/')
 def home():
-    return render_template("index.html")  # Loads Frontend
+    return "Flask Backend is Running!"  # Basic response for testing
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -35,5 +35,6 @@ def rate():
     rating = data['rating']
     return jsonify({"message": f"Rating submitted for {match_id}", "rating": rating})
 
+# Gunicorn requires `app` variable, no need for `app.run()`
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
