@@ -10,8 +10,8 @@
 // display a message when the match ends
 // display a message when the rating is submitted
 
-
-const backendURL = "https://speed-friending.onrender.com"; // Replace with your backend URL
+const backendURL = "http://127.0.0.1:5000"; // Local backend URL
+//const backendURL = "https://speed-friending.onrender.com"; // Replace with your backend URL
 let currentMatchId = null;
 let timer;
 
