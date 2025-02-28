@@ -30,9 +30,14 @@ def home():
     return render_template('index.html')
 
 @app.route('/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def register():
     try:
         data = request.get_json()
+        existing_player = Player.query.filter_by(name=data['name']).first()
+        if existing_player:
+            return jsonify({"error": "Player with this name already exists"}), 400
+
         new_player = Player(
             name=data['name'],
             age=data.get('age', 'Unknown'),
@@ -48,6 +53,7 @@ def register():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 400
+    
 
 def attempt_match():
     available_players = Player.query.filter_by(matched=False, stationary=False).all()
@@ -96,25 +102,28 @@ def attempt_match():
 
 @app.route('/match_status/<player_name>')
 def match_status(player_name):
-    match = Match.query.filter(
-        (Match.player1 == player_name) | (Match.player2 == player_name)
-    ).first()
+    player = Player.query.filter_by(name=player_name).first()
+    if player and player.matched:
+        match = Match.query.filter(
+            (Match.player1 == player_name) | (Match.player2 == player_name)
+        ).first()
+        if match:
+            if match.player1 == player_name:
+                opponent_name = match.player2
+            else:
+                opponent_name = match.player1
 
-    if match:
-        if match.player1 == player_name:
-            opponent_name = match.player2
+            return jsonify({
+                "match_id": match.id,
+                "player1": match.player1,
+                "player2": match.player2,
+                "opponent": opponent_name,
+                "challenge": match.challenge
+            })
         else:
-            opponent_name = match.player1
-
-        return jsonify({
-            "match_id": match.id,
-            "player1": match.player1,
-            "player2": match.player2,
-            "opponent": opponent_name,
-            "challenge": match.challenge
-        })
+            return jsonify({"error": "No match found"}), 404
     else:
-        return jsonify({"error": "No match found"}), 404
+        return jsonify({"error": "Player is not matched"}), 404
 
 @app.route('/rate', methods=['POST'])
 def rate():

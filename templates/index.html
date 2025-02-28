@@ -19,12 +19,25 @@
         <input type="text" id="age" name="age"><br><br>
         <label for="interests">Interests:</label>
         <input type="text" id="interests" name="interests"><br><br>
+        <h2>Choose your role:</h2>
+        <input type="radio" id="stationary" name="role" value="stationary">
+        <label for="stationary">Stationary Player (Opponent)</label><br>
+        <input type="radio" id="non-stationary" name="role" value="non-stationary">
+        <label for="non-stationary">Non-Stationary Player</label><br>
         <button id="register-button">Register</button>
     </form>
-    <h2>Choose your role:</h2>
-    <button id="stationary-button">Stationary Player (Opponent)</button>
-    <button id="non-stationary-button">Non-Stationary Player</button>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        document.getElementById('register-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            const role = document.querySelector('input[name="role"]:checked');
+            if (!role) {
+                alert("Please select a role!");
+                return;
+            }
+            registerPlayer();
+        });
+    </script>
 </body>
 </html>

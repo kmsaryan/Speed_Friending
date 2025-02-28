@@ -28,21 +28,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
 async function registerPlayer() {
     const name = document.getElementById("name").value;
-    if (!name) return alert("Enter a name!");
+    const age = document.getElementById("age").value;
+    const interests = document.getElementById("interests").value;
+    const role = document.querySelector('input[name="role"]:checked').value;
+    if (!name ||!age ||!interests ||!role) return alert("Please fill out all fields!");
 
     try {
         const response = await fetch(`${backendURL}/register`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                name, 
+                age, 
+                interests: [interests], 
+                stationary: role === "stationary" 
+            })
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}`);
+        }
 
         const data = await response.json();
         alert(data.message);
 
         if (data.redirect) {
             sessionStorage.setItem("playerName", name);
-            window.location.href = data.redirect;
+            if (role === "stationary") {
+                window.location.href = "/opponent";
+            } else if (role === "non-stationary") {
+                window.location.href = "/player";
+            }
         }
     } catch (error) {
         console.error("Error registering player:", error);
@@ -50,53 +70,117 @@ async function registerPlayer() {
     }
 }
 
-async function checkMatch(playerName) {
-    if (!playerName) return alert("No player name found. Please register again.");
-
+async function checkMatch() {
     try {
-        const response = await fetch(`${backendURL}/match_status/${playerName}`);
-        const data = await response.json();
+        const response = await fetch(`${backendURL}/match_status/${sessionStorage.getItem("playerName")}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                console.log("No match found");
+                // Wait for 1 second and try again
+                setTimeout(checkMatch, 1000);
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+        }
 
-        if (data.error) {
-            console.error(data.error);
-            document.getElementById('match-status').innerText = 'No match found';
-            setTimeout(() => checkMatch(playerName), 3000); // Retry after 3 seconds
-        } else {
-            currentMatchId = data.match_id;
-            document.getElementById('player-name').innerText = playerName;
-            document.getElementById('opponent-name').innerText = data.opponent;
-            document.getElementById('challenge').innerText = data.challenge;
-            startTimer();
+        const data = await response.json();
+        if (data.match_id) {
+            // Create the match element if it doesn't exist
+            let matchElement = document.getElementById("match");
+            if (!matchElement) {
+                matchElement = document.createElement("p");
+                matchElement.id = "match";
+                document.body.appendChild(matchElement);
+            }
+
+            // Update the match element with the match information
+            matchElement.innerText = `You have been matched with ${data.opponent} for the challenge: ${data.challenge}`;
+
+            // Create the end interaction button if it doesn't exist
+            let endInteractionButton = document.getElementById("end-interaction-button");
+            if (!endInteractionButton) {
+                endInteractionButton = document.createElement("button");
+                endInteractionButton.id = "end-interaction-button";
+                endInteractionButton.textContent = "End Interaction";
+                document.body.appendChild(endInteractionButton);
+
+                // Add an event listener to the end interaction button
+                endInteractionButton.addEventListener("click", async () => {
+                    try {
+                        const rating = prompt("Please rate your opponent (1-5):");
+                        const response = await fetch(`${backendURL}/rate`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                match_id: data.match_id,
+                                rating: rating
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        console.log("Interaction ended and rated");
+                    } catch (error) {
+                        console.error("Error ending interaction:", error);
+                    }
+                });
+            }
+
+            // Create the timer element if it doesn't exist
+            let timerElement = document.getElementById("timer");
+            if (!timerElement) {
+                timerElement = document.createElement("p");
+                timerElement.id = "timer";
+                document.body.appendChild(timerElement);
+            }
+
+            // Update the timer element with the remaining time
+            let timeRemaining = 60; // Default time remaining, can be changed later
+            const intervalId = setInterval(() => {
+                timeRemaining -= 1;
+                timerElement.innerText = `Time remaining: ${timeRemaining} seconds`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(intervalId);
+                    timerElement.innerText = "Time's up!";
+                    // End the interaction automatically after the time is up
+                    endInteractionButton.click();
+                }
+            }, 1000);
         }
     } catch (error) {
         console.error("Error checking match status:", error);
-        alert("Failed to retrieve match status.");
-        setTimeout(() => checkMatch(playerName), 3000); // Retry after 3 seconds
     }
 }
-
-async function checkMatchAsOpponent(playerName) {
-    if (!playerName) return alert("No player name found. Please register again.");
-
+async function checkMatchAsOpponent() {
     try {
-        const response = await fetch(`${backendURL}/match_status/${playerName}`);
-        const data = await response.json();
+        const response = await fetch(`${backendURL}/match_status/${sessionStorage.getItem("playerName")}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                console.log("No match found");
+                // Wait for 1 second and try again
+                setTimeout(checkMatchAsOpponent, 1000);
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+        }
 
-        if (data.error) {
-            console.error(data.error);
-            document.getElementById('match-status').innerText = 'No match found';
-            setTimeout(() => checkMatchAsOpponent(playerName), 3000); // Retry after 3 seconds
-        } else {
-            currentMatchId = data.match_id;
-            document.getElementById('opponent-name').innerText = playerName;
-            document.getElementById('player-name').innerText = data.opponent;
-            document.getElementById('challenge').innerText = data.challenge;
-            startTimer();
+        const data = await response.json();
+        if (data.match_id) {
+            // Update the HTML element with the match information
+            const matchElement = document.getElementById("match");
+            if (matchElement) {
+                matchElement.innerText = `You have been matched with ${data.opponent}`;
+            } else {
+                console.error("Match element not found");
+            }
         }
     } catch (error) {
         console.error("Error checking match status:", error);
-        alert("Failed to retrieve match status.");
-        setTimeout(() => checkMatchAsOpponent(playerName), 3000); // Retry after 3 seconds
     }
 }
 
